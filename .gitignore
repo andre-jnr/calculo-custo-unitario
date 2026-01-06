@@ -1,0 +1,23 @@
+# ===== Pastas específicas =====
+utils/
+
+# ===== Ambiente virtual =====
+venv/
+.env/
+.venv/
+env/
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ===== Logs e temporários =====
+*.log
+*.tmp
+*.swp
+*.bak
+
+# ===== IDEs =====
+.vscode/
+.idea/
