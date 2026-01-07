@@ -89,8 +89,8 @@ if "df" in st.session_state:
 
     # ========= FRETE RATEADO =========
     frete_percentual = (
-        valor_frete / valor_total_nota * 100
-        if valor_total_nota > 0 else 0
+        valor_frete / valor_total_produtos * 100
+        if valor_total_produtos > 0 else 0
     )
 
     st.info(f"Frete rateado: **{frete_percentual:.2f}%** sobre os produtos")
