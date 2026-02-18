@@ -107,6 +107,13 @@ if "df" in st.session_state:
         key="icms_lote"
     )
 
+    marcar_todos = st.checkbox("Marcar todos os produtos")
+
+    if marcar_todos:
+        df["✔️"] = True
+    else:
+        df["✔️"] = False
+
     df_editado = st.data_editor(
         df,
         use_container_width=True,
