@@ -93,7 +93,14 @@ if "df" in st.session_state:
         if valor_total_produtos > 0 else 0
     )
 
-    st.info(f"Frete rateado: **{frete_percentual:.2f}%** sobre os produtos")
+    with col1:
+        st.info(f"Frete rateado: **{frete_percentual:.2f}%** sobre os produtos")
+
+    with col2:
+        if diferenca < 0:
+            st.info(f"Valor suframa: **R${diferenca:.2f}**")
+        else:
+            st.info(f"Outras despesas: **R${diferenca:.2f}**")
 
     st.write(
         "Digite o ICMS manualmente ou use o campo abaixo para aplicar em lote."
