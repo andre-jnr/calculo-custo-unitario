@@ -149,7 +149,7 @@ O PDF:
 - ✔️ Cálculo por quantidade de caixa
 - ✔️ Geração e download de PDF
 
-👨‍💻 Autor
+# 👨‍💻 Autor
 
 Projeto desenvolvido para automatizar o cálculo de custo unitário de notas fiscais, trazendo:
  - Mais precisão
