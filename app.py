@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from lxml import etree
+from pdf import gerar_pdf
 
 st.set_page_config(layout="wide")
 st.title("Cálculo de Custo Unitário - NF-e")
@@ -191,4 +192,15 @@ if "df" in st.session_state:
             "% Custos Adicionais": "{:.2f}%"
         }),
         use_container_width=True
+    )
+
+
+    # Botão para exportar PDF
+    pdf_buffer = gerar_pdf(tabela_final)
+
+    st.download_button(
+        label="📄 Baixar Resultado em PDF",
+        data=pdf_buffer,
+        file_name="resultado_custo_unitario.pdf",
+        mime="application/pdf"
     )
