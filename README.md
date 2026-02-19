@@ -1,4 +1,6 @@
 # 📦 Cálculo de Custo Unitário - NF-e
+<img width="1724" height="1091" alt="image" src="https://github.com/user-attachments/assets/e81f4de0-2eb7-4258-88a3-2a82177514d7" />
+
 
 Aplicação web desenvolvida com Streamlit para realizar o cálculo de custo unitário de produtos a partir do XML da NF-e, considerando:
 
