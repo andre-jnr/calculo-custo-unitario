@@ -30,6 +30,7 @@ if arquivo_xml and "df" not in st.session_state:
             "Descrição": descricao.text if descricao is not None else "",
             "Quantidade": float(quantidade.text),
             "Valor Unitário": float(valor_unit.text),
+            "Qtd Caixa": 1,
             "ICMS %": 0.0
         })
 
@@ -150,6 +151,10 @@ if "df" in st.session_state:
         df_editado["ICMS %"]
         + df_editado["% Frete"]
         + df_editado["% Suframa/Outras"]
+    )
+
+    df_editado["Valor Unitário"] = (
+        df_editado["Valor Unitário"] / df_editado["Qtd Caixa"]
     )
 
     # Cálculo do custo final
