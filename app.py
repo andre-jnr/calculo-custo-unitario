@@ -137,24 +137,51 @@ if "df" in st.session_state:
     )
 
     # ========= CÁLCULO FINAL =========
-    ajuste = df_editado["Valor Unitário"] * st.session_state.percentual_ajuste / 100
+
+    # Percentuais individuais
+    df_editado["% Frete"] = frete_percentual
+    df_editado["% Suframa/Outras"] = st.session_state.percentual_ajuste
 
     if st.session_state.tipo_ajuste == "desconto":
-        ajuste = -ajuste
+        df_editado["% Suframa/Outras"] = -df_editado["% Suframa/Outras"]
 
-    df_editado["Custo Unitário Final"] = (
-        df_editado["Valor Unitário"]
-        + (df_editado["Valor Unitário"] * df_editado["ICMS %"] / 100)
-        + (df_editado["Valor Unitário"] * frete_percentual / 100)
-        + ajuste
+    # Percentual total adicional
+    df_editado["% Custos Adicionais"] = (
+        df_editado["ICMS %"]
+        + df_editado["% Frete"]
+        + df_editado["% Suframa/Outras"]
     )
+
+    # Cálculo do custo final
+    df_editado["Custo Final"] = (
+        df_editado["Valor Unitário"]
+        * (1 + df_editado["% Custos Adicionais"] / 100)
+    )
+
+    # ========= TABELA FINAL ORGANIZADA =========
+
+    tabela_final = df_editado[[
+        "Descrição",
+        "Valor Unitário",
+        "ICMS %",
+        "% Frete",
+        "% Suframa/Outras",
+        "% Custos Adicionais",
+        "Custo Final"
+    ]].rename(columns={
+        "Valor Unitário": "Custo"
+    })
 
     st.subheader("Resultado Final")
 
     st.dataframe(
-        df_editado.style.format({
-            "Valor Unitário": "R$ {:.2f}",
-            "Custo Unitário Final": "R$ {:.2f}"
+        tabela_final.style.format({
+            "Custo": "R$ {:.2f}",
+            "Custo Final": "R$ {:.2f}",
+            "ICMS %": "{:.2f}%",
+            "% Frete": "{:.2f}%",
+            "% Suframa/Outras": "{:.2f}%",
+            "% Custos Adicionais": "{:.2f}%"
         }),
         use_container_width=True
     )
