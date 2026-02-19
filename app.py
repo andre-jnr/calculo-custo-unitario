@@ -139,43 +139,45 @@ if "df" in st.session_state:
 
     # ========= CÁLCULO FINAL =========
 
+    # Cria um NOVO dataframe só para cálculo
+    df_calculo = df_editado.copy()
+
     # Percentuais individuais
-    df_editado["% Frete"] = frete_percentual
-    df_editado["% Suframa/Outras"] = st.session_state.percentual_ajuste
+    df_calculo["% Frete"] = frete_percentual
+    df_calculo["% Suframa/Outras"] = st.session_state.percentual_ajuste
 
     if st.session_state.tipo_ajuste == "desconto":
-        df_editado["% Suframa/Outras"] = -df_editado["% Suframa/Outras"]
+        df_calculo["% Suframa/Outras"] = -df_calculo["% Suframa/Outras"]
 
     # Percentual total adicional
-    df_editado["% Custos Adicionais"] = (
-        df_editado["ICMS %"]
-        + df_editado["% Frete"]
-        + df_editado["% Suframa/Outras"]
+    df_calculo["% Custos Adicionais"] = (
+        df_calculo["ICMS %"]
+        + df_calculo["% Frete"]
+        + df_calculo["% Suframa/Outras"]
     )
 
-    df_editado["Valor Unitário"] = (
-        df_editado["Valor Unitário"] / df_editado["Qtd Caixa"]
+    # Ajuste do valor unitário pela quantidade da caixa
+    df_calculo["Custo"] = (
+        df_calculo["Valor Unitário"] / df_calculo["Qtd Caixa"]
     )
 
     # Cálculo do custo final
-    df_editado["Custo Final"] = (
-        df_editado["Valor Unitário"]
-        * (1 + df_editado["% Custos Adicionais"] / 100)
+    df_calculo["Custo Final"] = (
+        df_calculo["Custo"]
+        * (1 + df_calculo["% Custos Adicionais"] / 100)
     )
 
     # ========= TABELA FINAL ORGANIZADA =========
 
-    tabela_final = df_editado[[
+    tabela_final = df_calculo[[
         "Descrição",
-        "Valor Unitário",
+        "Custo",
         "ICMS %",
         "% Frete",
         "% Suframa/Outras",
         "% Custos Adicionais",
         "Custo Final"
-    ]].rename(columns={
-        "Valor Unitário": "Custo"
-    })
+    ]]
 
     st.subheader("Resultado Final")
 
@@ -190,5 +192,3 @@ if "df" in st.session_state:
         }),
         use_container_width=True
     )
-
-    st.success("Cálculo realizado com sucesso ✅")
