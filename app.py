@@ -97,7 +97,7 @@ if "df" in st.session_state:
         st.info(f"Frete rateado: **{frete_percentual:.2f}%** sobre os produtos")
 
     with col2:
-        st.info(f"{nome_campo}: **R${diferenca:.2f}**")
+        st.info(f"{nome_campo[:-4]}: **R${diferenca:.2f}**")
 
     st.write(
         "Digite o ICMS manualmente ou use o campo abaixo para aplicar em lote."
