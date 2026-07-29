@@ -5,6 +5,7 @@
 Aplicação web desenvolvida com Streamlit para realizar o cálculo de custo unitário de produtos a partir do XML da NF-e, considerando:
 
 - ✅ ICMS individual ou em lote
+- ✅ Importação automática de ICMS a partir da planilha GDD
 - ✅ Rateio automático de frete
 - ✅ Suframa (desconto) ou Outras Despesas (acréscimo)
 - ✅ Quantidade por caixa
