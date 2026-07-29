@@ -9,7 +9,7 @@ from pdf import gerar_pdf
 st.set_page_config(layout="wide")
 st.title("Cálculo de Custo Unitário - NF-e")
 
-arquivo_xml = st.file_uploagitder("Selecione o XML da NF-e", type=["xml"])
+arquivo_xml = st.file_uploader("Selecione o XML da NF-e", type=["xml"])
 
 # ========= CARREGA XML APENAS UMA VEZ =========
 if arquivo_xml and "df" not in st.session_state:
