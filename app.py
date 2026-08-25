@@ -142,6 +142,9 @@ if "df" in st.session_state:
             def para_float(valor):
                 return float(str(valor).replace(",", "."))
 
+            def eh_tributo_cesta_basica(tributo):
+                return "CESTA BÁSICA" in str(tributo).upper()
+
             # A planilha GDD traz um título e os dados do fornecedor/nota
             # nas primeiras linhas antes do cabeçalho de fato; localiza a
             # linha que contém "Multiplicador" para não depender de um
@@ -168,6 +171,24 @@ if "df" in st.session_state:
                 )
                 df_gdd.columns = [str(c).strip() for c in df_gdd.columns]
 
+                # Produtos da cesta básica são lançados na GDD com o
+                # Multiplicador zerado (0,00) na própria linha do produto;
+                # a alíquota real vem só na linha-resumo do tributo
+                # "... CESTA BÁSICA - FUNDO DE PROMOÇÃO SOCIAL", cuja
+                # "B. Cálculo" é a soma da "B. Cálculo" dessas linhas
+                # zeradas. Localiza essa alíquota antes de montar os
+                # dicionários de match.
+                multiplicador_cesta_basica = None
+                for _, linha in df_gdd.iterrows():
+                    if pd.isna(linha.get("Multiplicador")):
+                        continue
+                    if not eh_tributo_cesta_basica(linha.get("Tributo Tipo", "")):
+                        continue
+                    valor = para_float(linha["Multiplicador"])
+                    if valor > 0:
+                        multiplicador_cesta_basica = valor
+                        break
+
                 by_cprod = {}
                 by_gtin = {}
                 by_desc = {}
@@ -177,6 +198,13 @@ if "df" in st.session_state:
                         continue
 
                     multiplicador = para_float(linha["Multiplicador"])
+
+                    if (
+                        multiplicador == 0
+                        and multiplicador_cesta_basica is not None
+                        and eh_tributo_cesta_basica(linha.get("Tributo Tipo", ""))
+                    ):
+                        multiplicador = multiplicador_cesta_basica
 
                     cprod_gdd = str(linha.get("CODG. Produto", "")).strip()
                     if cprod_gdd:

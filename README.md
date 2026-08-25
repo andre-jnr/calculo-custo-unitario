@@ -5,7 +5,7 @@
 Aplicação web desenvolvida com Streamlit para realizar o cálculo de custo unitário de produtos a partir do XML da NF-e, considerando:
 
 - ✅ ICMS individual ou em lote
-- ✅ Importação automática de ICMS a partir da planilha GDD
+- ✅ Importação automática de ICMS a partir da planilha GDD (com tratamento automático da alíquota de Cesta Básica)
 - ✅ Rateio automático de frete
 - ✅ Suframa (desconto) ou Outras Despesas (acréscimo)
 - ✅ Quantidade por caixa
@@ -50,6 +50,10 @@ A aplicação:
 ```
 Frete (%) = (Valor do Frete / Total Produtos) * 100
 ```
+
+📌 Cesta Básica na importação GDD
+
+Na planilha GDD, produtos de Cesta Básica vêm com `Multiplicador` (ICMS) zerado na própria linha do produto — a alíquota real (ex.: 12,35%) fica só na linha-resumo do tributo "... CESTA BÁSICA - FUNDO DE PROMOÇÃO SOCIAL". A aplicação identifica esse padrão e aplica automaticamente essa alíquota aos produtos da Cesta Básica, em vez de importar 0%.
 
 📌 Suframa ou Outras Despesas
 ```
