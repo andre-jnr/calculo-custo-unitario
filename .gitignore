@@ -1,16 +1,6 @@
-# ===== Pastas específicas =====
-utils/
-
-# ===== Ambiente virtual =====
-venv/
-.env/
-.venv/
-env/
-
-# ===== Python =====
-__pycache__/
-*.py[cod]
-*$py.class
+# ===== Sistema operacional =====
+.DS_Store
+Thumbs.db
 
 # ===== Logs e temporários =====
 *.log
@@ -21,3 +11,6 @@ __pycache__/
 # ===== IDEs =====
 .vscode/
 .idea/
+
+# ===== Node (caso venha a usar ferramentas de build) =====
+node_modules/

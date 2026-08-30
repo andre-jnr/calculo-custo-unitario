@@ -1,164 +1,125 @@
-# 📦 Cálculo de Custo Unitário - NF-e
-<img width="1724" height="1091" alt="image" src="https://github.com/user-attachments/assets/e81f4de0-2eb7-4258-88a3-2a82177514d7" />
+# 📦 Cálculo de Custo Unitário — NF-e
 
+Aplicação **100% front-end** (HTML + CSS + JavaScript puro) que lê o XML de uma
+NF-e e a planilha **GDD (Gestão de Desembaraço de Documentos)** e calcula o
+**custo unitário final** de cada produto, considerando ICMS, rateio de frete
+(valor + ICMS do frete) e ajuste automático de Suframa / Outras Despesas.
 
-Aplicação web desenvolvida com Streamlit para realizar o cálculo de custo unitário de produtos a partir do XML da NF-e, considerando:
+Roda direto no navegador, sem servidor e sem back-end — pode ser publicada no
+**GitHub Pages**. Nenhum arquivo sai do computador: todo o processamento acontece
+localmente.
 
-- ✅ ICMS individual ou em lote
-- ✅ Importação automática de ICMS a partir da planilha GDD (com tratamento automático da alíquota de Cesta Básica)
-- ✅ Rateio automático de frete
-- ✅ Suframa (desconto) ou Outras Despesas (acréscimo)
-- ✅ Quantidade por caixa
-- ✅ Cálculo automático do custo final
-- ✅ Exportação do resultado em PDF
+## ✨ Funcionalidades
 
-# 🚀Acesse a aplicação online
+- ✅ Importação do **XML da NF-e** (Descrição, Quantidade, Valor Unitário, Valor
+  Total da Nota)
+- ✅ Importação da **planilha GDD** para preencher automaticamente:
+  - **ICMS %** de cada produto (coluna `Multiplicador`), com tratamento
+    automático da alíquota de **Cesta Básica**
+  - **Valor do frete** e **ICMS do frete** (tributos `1339` / `1415` — Frete FOB
+    antecipado / serviço de transporte contratado)
+- ✅ Ajuste automático de **Suframa (desconto)** ou **Outras Despesas (acréscimo)**
+  pela diferença entre o valor da nota e a soma dos produtos
+- ✅ Rateio automático de frete sobre o valor dos produtos
+- ✅ **Quantidade por caixa** (custo por unidade)
+- ✅ Edição manual da tabela + aplicação de **ICMS em lote**
+- ✅ **Tabela única** com todos os cálculos por linha
+- ✅ Exportação em **PDF** (paisagem, com resumo, frete e tabela de produtos)
+- ✅ Tema claro/escuro, animações e microinterações
 
-🔗 Link oficial:
-👉 https://calculo-custo-unitario.streamlit.app/
+## 🚀 Como usar
 
-### 📥 Upload do XML e edição dos dados
+### Online (GitHub Pages)
 
-- Upload do XML da NF-e
-- Edição de ICMS por produto
-- Aplicação de ICMS em lote
-- Controle de quantidade por caixa
+Publique o repositório em *Settings → Pages → Deploy from a branch → `main` / root*
+e acesse a URL gerada.
 
-### 📊 Resultado Final
+### Local
 
-- Cálculo do custo base
-- Rateio de frete
-- Aplicação automática de Suframa ou Outras Despesas
-- Cálculo consolidado do custo final
-- Exportação em PDF formatado
+Basta abrir o `index.html` no navegador. Para evitar restrições de `file://` em
+alguns navegadores, sirva a pasta com um servidor estático simples:
 
-# 🧠 Lógica de Funcionamento
-
-## 1️⃣ Leitura do XML
-
-A aplicação:
-- Lê o XML da NF-e usando lxml
-- Extrai:
-  - `xProd` → Descrição
-  - `qCom` → Quantidade
-  - `vUnCom` → Valor Unitário
-  - `vProd` → Valor total do item
-  - `vNF` → Valor total da nota
-
-## 2️⃣ Cálculos Automáticos
-📌 Rateio do Frete
-```
-Frete (%) = (Valor do Frete / Total Produtos) * 100
+```bash
+# Python
+python -m http.server 8000
+# ou Node
+npx serve .
 ```
 
-📌 Cesta Básica na importação GDD
+E acesse `http://localhost:8000`.
 
-Na planilha GDD, produtos de Cesta Básica vêm com `Multiplicador` (ICMS) zerado na própria linha do produto — a alíquota real (ex.: 12,35%) fica só na linha-resumo do tributo "... CESTA BÁSICA - FUNDO DE PROMOÇÃO SOCIAL". A aplicação identifica esse padrão e aplica automaticamente essa alíquota aos produtos da Cesta Básica, em vez de importar 0%.
+## 🧠 Lógica de cálculo
 
-📌 Suframa ou Outras Despesas
-```
-Diferença = Total Nota - Total Produtos
-```
-- Se negativo → Suframa (desconto)
-- Se positivo → Outras Despesas (acréscimo)
+### 1. Leitura do XML
 
-## 3️⃣ Cálculo do Custo Final
-Ajuste por quantidade da caixa
-```
-Custo = Valor Unitário / Qtd Caixa
-```
+Para cada `<det>` são lidos `xProd` → Descrição, `qCom` → Quantidade,
+`vUnCom` → Valor Unitário, `vProd` (somado) e `cProd` / `cEAN` (chaves para o
+match com a GDD). `vNF` → Valor Total da Nota.
 
-Percentual total adicional
+### 2. Suframa / Outras Despesas (automático)
+
 ```
-% Custos Adicionais = ICMS + % Frete + % Suframa/Outras
+Diferença = Valor Total da Nota − Soma dos Produtos
 ```
 
-Cálculo final
-```
-Custo Final = Custo * (1 + (% Custos Adicionais / 100))
-```
+- Diferença **negativa** → **Suframa**, aplicada como **desconto** (percentual
+  negativo no custo final)
+- Diferença **positiva** → **Outras Despesas**, aplicada como **acréscimo**
+- Zero → 0%
 
-🗂 Estrutura do Projeto
 ```
-📦 calculo-custo-unitario
-│
-├── app.py           # Aplicação principal (Streamlit)
-├── pdf.py           # Geração do PDF com ReportLab
-├── requirements.txt # Dependências do projeto
+% Suframa/Outras = |Diferença| ÷ Soma dos Produtos × 100
 ```
 
-# 🛠 Tecnologias Utilizadas
+### 3. Frete rateado (valor único, não por produto)
 
-- Python 3.10+
-- Streamlit
-- Pandas
-- lxml
-- ReportLab
-
-# ⚙️ Como Executar o Projeto
-
-## 1️⃣ Clone o repositório
 ```
-git clone https://github.com/andre-jnr/calculo-custo-unitario.git
-cd calculo-custo-unitario
+Custo de frete total = Valor do frete + ICMS do frete
+% Frete = Custo de frete total ÷ Soma dos Produtos × 100
 ```
 
-## 2️⃣ Crie um ambiente virtual
-```
-python -m venv venv
-```
+O mesmo percentual é aplicado a todos os itens.
 
-## 3️⃣ Ative o ambiente
+### 4. Importação de ICMS da GDD
 
-Windows (PowerShell):
-```
-venv\Scripts\Activate.ps1
-```
+O ICMS % de cada produto é **sempre sobrescrito** com o valor da coluna
+`Multiplicador` da GDD para os produtos casados. Ordem de prioridade do match
+(a primeira que casar decide):
 
-Windows (CMD):
-```
-venv\Scripts\activate
-```
+1. `cProd` (XML) × `CODG. Produto` (GDD)
+2. `cEAN` (XML) × `GTIN` (GDD)
+3. Descrição normalizada (`xProd` × `Descrição`, ignorando o sufixo `LOTE - N`)
 
-Linux/Mac:
-```
-source venv/bin/activate
-```
+Produtos sem correspondência nas três tentativas mantêm o ICMS % atual e são
+listados em um aviso na tela.
 
-## 4️⃣ Instale as dependências
-```
-pip install -r requirements.txt
-```
+**Cesta Básica:** produtos da cesta básica vêm com `Multiplicador` zerado na
+própria linha; a alíquota real (ex.: 12,35%) está apenas na linha-resumo do
+tributo `... CESTA BÁSICA - FUNDO DE PROMOÇÃO SOCIAL`. A aplicação detecta o
+padrão `CESTA BÁSICA` em `Tributo Tipo` e propaga a alíquota da linha-resumo para
+as linhas zeradas do grupo antes do match.
 
-## 5️⃣ Execute a aplicação
+### 5. Custo final por linha
+
 ```
-streamlit run app.py
+Custo             = Valor Unitário ÷ Qtd Caixa
+% Custos Adicionais = ICMS % + % Frete + % Suframa/Outras
+Custo Final        = Custo × (1 + % Custos Adicionais ÷ 100)
 ```
 
-# 📄 Exportação em PDF
+## 🗂 Estrutura do projeto
 
-O PDF:
-- Está em modo paisagem (A4)
-- Possui:
-  - Título
-  - Cabeçalho formatado
-  - Valores monetários no padrão brasileiro
-  - Percentuais formatados
-- Pronto para envio ao setor financeiro ou contábil
+```
+calculo-custo-unitario/
+├── index.html   # marcação da página
+├── style.css    # tema (claro/escuro), layout e animações
+├── app.js       # parsing de XML/GDD, cálculo e geração de PDF
+├── vendor/      # bibliotecas (SheetJS, jsPDF, jspdf-autotable)
+└── .nojekyll    # publica os arquivos como estão no GitHub Pages
+```
 
-# 🎯 Funcionalidades Principais
+## 🛠 Bibliotecas (em `vendor/`, sem CDN)
 
-- ✔️ Upload de XML da NF-e
-- ✔️ Edição interativa via `st.data_editor`
-- ✔️ Aplicação de ICMS em lote
-- ✔️ Cálculo automático de frete rateado
-- ✔️ Identificação automática de Suframa ou Outras Despesas
-- ✔️ Cálculo por quantidade de caixa
-- ✔️ Geração e download de PDF
-
-# 👨‍💻 Autor
-
-Projeto desenvolvido para automatizar o cálculo de custo unitário de notas fiscais, trazendo:
- - Mais precisão
- - Redução de erros manuais
- - Agilidade no setor de faturamento/controladoria
+- [SheetJS (xlsx)](https://sheetjs.com/) — leitura da planilha GDD
+- [jsPDF](https://github.com/parallax/jsPDF) + [jspdf-autotable](https://github.com/simonbengtsson/jsPDF-AutoTable)
+  — geração do PDF
