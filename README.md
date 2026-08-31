@@ -25,6 +25,7 @@ localmente.
 - ✅ Edição manual da tabela + aplicação de **ICMS em lote**
 - ✅ **Tabela única** com todos os cálculos por linha
 - ✅ Exportação em **PDF** (paisagem, com resumo, frete e tabela de produtos)
+- ✅ Exportação da tabela de produtos em **Excel (.xlsx)**, com valores numéricos
 - ✅ Tema claro/escuro, animações e microinterações
 
 ## 🚀 Como usar
@@ -120,6 +121,6 @@ calculo-custo-unitario/
 
 ## 🛠 Bibliotecas (em `vendor/`, sem CDN)
 
-- [SheetJS (xlsx)](https://sheetjs.com/) — leitura da planilha GDD
+- [SheetJS (xlsx)](https://sheetjs.com/) — leitura da planilha GDD e exportação em Excel
 - [jsPDF](https://github.com/parallax/jsPDF) + [jspdf-autotable](https://github.com/simonbengtsson/jsPDF-AutoTable)
   — geração do PDF

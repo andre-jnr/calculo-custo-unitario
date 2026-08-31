@@ -971,6 +971,85 @@ function gerarPDF() {
 }
 
 /* ============================================================
+   EXPORTAÇÃO PARA EXCEL (tabela de produtos)
+   ============================================================ */
+
+document.getElementById('excelBtn').addEventListener('click', exportarExcel);
+
+function arredondar(n, casas) {
+  const f = Math.pow(10, casas);
+  return Math.round((Number(n) || 0) * f) / f;
+}
+
+function exportarExcel() {
+  if (!ultimoCalculo) recomputeAll();
+
+  const linhas = ultimoCalculo.linhas.filter(
+    (l) => l.descricao && l.descricao.trim()
+  );
+
+  if (!linhas.length) {
+    setStatus('gddStatus', 'Nenhum produto na tabela para exportar.', 'warn');
+    return;
+  }
+
+  const cabecalho = [
+    'Descrição',
+    'Quantidade',
+    'Valor Unitário',
+    'Qtd Caixa',
+    'ICMS %',
+    'Custo',
+    '% Frete',
+    '% Suframa/Outras',
+    '% Custos Adicionais',
+    'Custo Final'
+  ];
+
+  const aoa = [cabecalho];
+  linhas.forEach((l) => {
+    aoa.push([
+      l.descricao,
+      arredondar(l.quantidade, 4),
+      arredondar(l.valorUnitario, 4),
+      arredondar(l.qtdCaixa, 4),
+      arredondar(l.icmsPct, 4),
+      arredondar(l.custo, 4),
+      arredondar(l.pctFrete, 4),
+      arredondar(l.pctAjuste, 4),
+      arredondar(l.pctAdd, 4),
+      arredondar(l.custoFinal, 4)
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [
+    { wch: 42 },
+    { wch: 12 },
+    { wch: 14 },
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 12 },
+    { wch: 10 },
+    { wch: 16 },
+    { wch: 18 },
+    { wch: 14 }
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Produtos');
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, 'custo_unitario_produtos_' + stamp + '.xlsx');
+
+  setStatus(
+    'gddStatus',
+    `${linhas.length} produto(s) exportado(s) para Excel.`,
+    'ok'
+  );
+}
+
+/* ============================================================
    INICIALIZAÇÃO
    ============================================================ */
 

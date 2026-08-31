@@ -724,6 +724,17 @@ table.products td.actions {
     transform 0.12s var(--ease), box-shadow 0.18s var(--ease);
 }
 
+.btn:has(svg) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.btn svg {
+  width: 15px;
+  height: 15px;
+}
+
 .btn:hover {
   background: var(--head-bg);
   transform: translateY(-1px);

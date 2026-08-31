@@ -24,7 +24,8 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
   bundler, sem npm em runtime.
 - **Bibliotecas** (versionadas em `vendor/`, carregadas por `<script>` local, sem
   CDN):
-  - `vendor/xlsx.full.min.js` — SheetJS, leitura da planilha GDD (.xlsx)
+  - `vendor/xlsx.full.min.js` — SheetJS, leitura da planilha GDD e exportação
+    da tabela de produtos em .xlsx
   - `vendor/jspdf.umd.min.js` — jsPDF 2.5.2, geração de PDF
   - `vendor/jspdf.plugin.autotable.min.js` — tabelas no PDF
 - **Fonte**: Google Fonts (`Source Sans 3`) via `<link>`, com fallback de sistema.
@@ -117,6 +118,10 @@ Não há `src/`, `tests/`, `package.json`, nem CI.
    tabela-resumo, tabela de frete, tabela de produtos (Descrição, Qtd, Vlr unit.,
    Qtd caixa, Custo, ICMS %, % Frete, % Suframa/Outras, % Custos adic., Custo
    final), rodapé com paginação. Salva `resultado_custo_unitario_AAAA-MM-DD.pdf`.
+8. **Excel** (`exportarExcel`, botão `#excelBtn`): exporta só a tabela de
+   produtos (`ultimoCalculo.linhas`) via `XLSX.writeFile`, uma aba `Produtos`,
+   com os valores como **número** (arredondados a 4 casas), não texto formatado.
+   Salva `custo_unitario_produtos_AAAA-MM-DD.xlsx`.
 
 ## Regras de Negócio
 
@@ -161,9 +166,10 @@ Não há `src/`, `tests/`, `package.json`, nem CI.
   `formatBRL` / `formatPct`. Não recriar formatação inline.
 - **CSS**: cores só como tokens em `:root` / `[data-theme="dark"]`; nunca hardcode
   cor fora dos tokens. Respeitar `prefers-reduced-motion`.
-- **Acoplamento tabela × PDF**: `gerarPDF` lê de `ultimoCalculo.linhas` (não do
-  DOM). Ao mudar as colunas calculadas, atualizar `recomputeAll` (montagem de
-  `linhas`) e o `head`/`body` de `gerarPDF` juntos.
+- **Acoplamento tabela × PDF/Excel**: `gerarPDF` e `exportarExcel` leem de
+  `ultimoCalculo.linhas` (não do DOM). Ao mudar as colunas calculadas, atualizar
+  `recomputeAll` (montagem de `linhas`), o `head`/`body` de `gerarPDF` e o
+  `cabecalho`/`aoa` de `exportarExcel` juntos.
 
 ## O que deve ser evitado
 
