@@ -730,6 +730,7 @@ function recomputeAll() {
   const pctAjusteSigned = ajuste.tipo === 'suframa' ? -ajuste.pct : ajuste.pct;
 
   let somaCustoFinal = 0;
+  let somaIcms = 0;
   const linhas = [];
 
   products.forEach((row) => {
@@ -744,6 +745,7 @@ function recomputeAll() {
     const custoFinal = custo * (1 + pctAdd / 100);
 
     somaCustoFinal += custoFinal * qtd;
+    somaIcms += custo * (icms / 100) * qtd;
 
     setText('custo-' + row.id, formatBRL(custo));
     setText('pctfrete-' + row.id, formatPct(fretePct));
@@ -796,7 +798,8 @@ function recomputeAll() {
     ajuste: { ...ajuste, pctSigned: pctAjusteSigned },
     totalProdutos,
     totalNota,
-    somaCustoFinal
+    somaCustoFinal,
+    somaIcms
   };
 }
 
@@ -855,12 +858,13 @@ function gerarPDF() {
     y += 5;
   };
 
-  const kvTable = (pairs) => {
+  const kvTable = (pairs, opts = {}) => {
+    const highlightIndex = opts.highlightIndex;
     doc.autoTable({
       startY: y,
       margin: { left: margin, right: margin },
       theme: 'plain',
-      styles: { fontSize: 10, cellPadding: 2, halign: 'center' },
+      styles: { fontSize: 10, cellPadding: 3, halign: 'center' },
       head: [pairs.map((p) => p[0])],
       body: [pairs.map((p) => p[1])],
       headStyles: {
@@ -868,22 +872,32 @@ function gerarPDF() {
         textColor: [90, 90, 90],
         fontStyle: 'bold'
       },
-      bodyStyles: { fontStyle: 'bold', textColor: [198, 40, 40] }
+      bodyStyles: { fontStyle: 'bold', textColor: [198, 40, 40] },
+      didParseCell: (data) => {
+        if (highlightIndex == null || data.column.index !== highlightIndex) return;
+        if (data.section === 'head') {
+          data.cell.styles.fillColor = [255, 75, 75];
+          data.cell.styles.textColor = 255;
+        } else if (data.section === 'body') {
+          data.cell.styles.fillColor = [255, 232, 232];
+          data.cell.styles.textColor = [198, 40, 40];
+          data.cell.styles.fontSize = 11.5;
+        }
+      }
     });
     y = doc.lastAutoTable.finalY + 8;
   };
 
-  sectionTitle('Resumo da nota');
+  const ajusteValorStr =
+    calc.ajuste.tipo === 'nenhum'
+      ? '—'
+      : `${formatBRL(calc.ajuste.diferenca)} · ${formatPct(calc.ajuste.pctSigned)}`;
+
+  sectionTitle('Resumo da nota fiscal');
   kvTable([
     ['Total dos produtos', formatBRL(calc.totalProdutos)],
     ['Valor total da nota', formatBRL(calc.totalNota)],
-    [
-      calc.ajuste.nome,
-      calc.ajuste.tipo === 'nenhum'
-        ? '—'
-        : `${formatBRL(calc.ajuste.diferenca)} · ${formatPct(calc.ajuste.pctSigned)}`
-    ],
-    ['Custo final total (estimado)', formatBRL(calc.somaCustoFinal)]
+    [calc.ajuste.nome, ajusteValorStr]
   ]);
 
   sectionTitle('Frete');
@@ -893,6 +907,19 @@ function gerarPDF() {
     ['Custo de frete total', formatBRL(calc.custoFreteTotal)],
     ['% de frete rateado', formatPct(calc.fretePct)]
   ]);
+
+  sectionTitle('Resumo geral');
+  kvTable(
+    [
+      ['Valor total da nota', formatBRL(calc.totalNota)],
+      [calc.ajuste.nome, ajusteValorStr],
+      ['ICMS dos produtos', formatBRL(calc.somaIcms)],
+      ['Valor do frete', formatBRL(calc.freteValor)],
+      ['ICMS do frete', formatBRL(calc.freteIcms)],
+      ['Custo final total (estimado)', formatBRL(calc.somaCustoFinal)]
+    ],
+    { highlightIndex: 5 }
+  );
 
   sectionTitle('Produtos');
 
