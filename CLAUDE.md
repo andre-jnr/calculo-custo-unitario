@@ -53,8 +53,10 @@ Não há `src/`, `tests/`, `package.json`, nem CI.
   chama `renderTable()`.
 - **Estado em memória**, em variáveis de módulo dentro de `app.js`:
   - `products` — array de objetos linha `{ id, checked, descricao, quantidade,
-    valorUnitario, qtdCaixa, icmsPct, cProd, cEAN }`. `cProd`/`cEAN` são chaves
-    só para o match com a GDD (não aparecem na tabela).
+    valorUnitario, qtdCaixa, icmsPct, cProd, cEAN, vProd, gddTributos }`.
+    `cProd`/`cEAN` são chaves só para o match com a GDD (não aparecem na
+    tabela). `vProd` é o valor da linha no XML (sem IPI), base do ICMS % da GDD.
+    `gddTributos` = `{ [Tributo Tipo]: { valor, mult } }` acumulado das GDDs.
   - `nota` — `{ loaded, valorTotalProdutos, valorTotalNota }`, preenchido pelo XML.
   - `ultimoCalculo` — snapshot do último `recomputeAll()`, consumido pela geração
     de PDF.
@@ -86,8 +88,8 @@ Não há `src/`, `tests/`, `package.json`, nem CI.
    icms`; `% Frete = custoFreteTotal / base * 100`, onde `base` é
    `nota.valorTotalProdutos` quando há XML, senão a soma ao vivo da tabela.
    O mesmo % é rateado igualmente para todas as linhas.
-4. **Upload da GDD** (`#gddInput` / `#gddDropzone`) → `processGddFile` →
-   `extrairGDD`:
+4. **Upload da GDD** (`#gddInput` com `multiple` / `#gddDropzone`, aceita
+   **várias planilhas de uma vez**) → `processGddFiles` → `extrairGDD` por arquivo:
    - Acha a **linha de cabeçalho** procurando a célula que contém
      `"Multiplicador"` nas 10 primeiras linhas (a planilha tem título e dados do
      fornecedor antes do cabeçalho real).
@@ -98,12 +100,22 @@ Não há `src/`, `tests/`, `package.json`, nem CI.
    - **Cesta Básica**: acha a linha-resumo (`Tributo Tipo` contém `CESTA BÁSICA`
      e `Multiplicador > 0`) e, para as linhas de produto com `Multiplicador == 0`
      e `Tributo Tipo` contendo `CESTA BÁSICA`, usa a alíquota da linha-resumo no
-     lugar do zero.
+     lugar do zero (e, se o ICMS em R$ da linha for 0, `B. Cálculo × alíquota`).
    - Monta os dicionários `byCprod` / `byGtin` / `byDesc` (chave normalizada →
-     multiplicador).
-   - Para cada produto em `products`: tenta `byCprod[cProd]` → `byGtin[cEAN]` →
-     `byDesc[descrição normalizada]`. Se casar, **sobrescreve** `icmsPct` e dá
-     flash verde na linha. Se não, entra no aviso `#gddWarning`.
+     **lista** de `{ tributo, valor (ICMS R$), mult }` — um produto aparece em
+     várias linhas, uma por tributo, ex.: `1342 ANTECIPADO` + `3863 FUNDO DE
+     PROMOCAO SOCIAL`).
+   - Para cada produto e **cada planilha**: tenta `byCprod[cProd]` →
+     `byGtin[cEAN]` → `byDesc[descrição normalizada]`; os tributos casados entram
+     em `row.gddTributos` (mesmo tributo substitui, não duplica; acumula entre
+     importações até um novo XML). Se casou, **sobrescreve** `icmsPct` com
+     `icmsPctDaGdd` = Σ ICMS R$ ÷ `vProd` × 100 (cai no `mult` quando não há
+     valor em R$) e dá flash verde. Produto sem nenhum tributo casado entra no
+     aviso `#gddWarning`.
+   - **Por que valor em R$ e não o Multiplicador**: a GDD calcula esses tributos
+     sobre valor + IPI, mas o custo aplica o % sobre o valor sem IPI. Somar os R$
+     e dividir pelo `vProd` dá exatamente o ICMS pago (decisão do usuário).
+   - Frete: somado entre as planilhas importadas juntas.
    - A GDD **nunca cria linhas novas** — só atualiza produtos já vindos do XML.
 5. **Edição manual**: qualquer célula editável; ICMS em lote via
    `#icmsLoteInput` + `#marcarTodos` + botão `#aplicarLoteBtn` (aplica a
@@ -132,7 +144,8 @@ Não há `src/`, `tests/`, `package.json`, nem CI.
   desconto (percentual negativo).
 - **ICMS %** é por linha; pode ser digitado, aplicado em lote ou importado da
   GDD. Quando a GDD casa um produto, o ICMS % é **sempre sobrescrito** (a GDD é a
-  fonte de verdade do ICMS-ST — decisão explícita do usuário).
+  fonte de verdade do ICMS-ST — decisão explícita do usuário). Vindo da GDD, é a
+  soma do ICMS em R$ de todos os tributos do produto ÷ valor sem IPI.
 - **Ordem de match da GDD é fixa**: `cProd` → `cEAN` → descrição normalizada. A
   primeira que casar decide; as demais não são consultadas para aquele produto.
 - **ICMS de Cesta Básica não é 0%**: a alíquota real vem da linha-resumo

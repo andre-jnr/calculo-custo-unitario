@@ -83,15 +83,30 @@ O mesmo percentual é aplicado a todos os itens.
 
 ### 4. Importação de ICMS da GDD
 
-O ICMS % de cada produto é **sempre sobrescrito** com o valor da coluna
-`Multiplicador` da GDD para os produtos casados. Ordem de prioridade do match
-(a primeira que casar decide):
+Dá para importar **várias planilhas GDD de uma vez** (ex.: uma com o ICMS
+antecipado e outra com o Fundo de Promoção Social). O ICMS % de cada produto
+casado é **sempre sobrescrito** com:
+
+```
+ICMS % = Σ ICMS (R$) de todos os tributos do produto ÷ Valor do produto sem IPI × 100
+```
+
+Exemplo: licor com `1342 ANTECIPADO` (39% → R$ 258,84) + `3863 FUNDO DE
+PROMOCAO SOCIAL` (2,60% → R$ 17,25), valor do produto R$ 555,39 →
+ICMS % = 276,09 ÷ 555,39 = 49,71%. Como a GDD calcula esses tributos sobre
+valor + IPI, usar o valor em R$ garante que o custo reflita o ICMS realmente
+pago. Linhas sem valor em R$ na coluna `ICMS` usam o `Multiplicador`.
+
+Planilhas importadas em momentos diferentes se somam para o mesmo produto; o
+mesmo tributo importado de novo substitui o anterior (não duplica). Um novo XML
+zera tudo. Ordem de prioridade do match, por planilha (a primeira que casar
+decide):
 
 1. `cProd` (XML) × `CODG. Produto` (GDD)
 2. `cEAN` (XML) × `GTIN` (GDD)
 3. Descrição normalizada (`xProd` × `Descrição`, ignorando o sufixo `LOTE - N`)
 
-Produtos sem correspondência nas três tentativas mantêm o ICMS % atual e são
+Produtos sem correspondência em nenhuma planilha mantêm o ICMS % atual e são
 listados em um aviso na tela.
 
 **Cesta Básica:** produtos da cesta básica vêm com `Multiplicador` zerado na

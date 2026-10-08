@@ -87,11 +87,12 @@
             </div>
             <div class="title">Planilha GDD (Gestão de Desembaraço de Documentos)</div>
             <div class="hint">
-              Sobrescreve o ICMS % de cada produto (coluna <b>Multiplicador</b>, com tratamento
-              de Cesta Básica) e preenche o Valor do Frete e o ICMS do Frete.
+              Aceita várias planilhas de uma vez. Sobrescreve o ICMS % de cada produto
+              (soma do ICMS em R$ de todos os tributos ÷ valor do produto sem IPI, com
+              tratamento de Cesta Básica) e preenche o Valor do Frete e o ICMS do Frete.
             </div>
-            <span class="file-btn">Escolher ou arrastar arquivo</span>
-            <input type="file" id="gddInput" accept=".xlsx,.xls" />
+            <span class="file-btn">Escolher ou arrastar arquivos</span>
+            <input type="file" id="gddInput" accept=".xlsx,.xls" multiple />
             <div id="gddStatus" class="status-line"></div>
           </div>
         </div>

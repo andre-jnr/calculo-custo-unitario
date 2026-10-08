@@ -60,7 +60,11 @@ function createBlankRow() {
     qtdCaixa: '1',
     icmsPct: '0',
     cProd: '',
-    cEAN: ''
+    cEAN: '',
+    vProd: 0,
+    // Tributos da GDD casados com o produto: chave = "Tributo Tipo",
+    // valor = { valor (R$ de ICMS), mult (%) }. Acumula entre importações.
+    gddTributos: {}
   };
 }
 
@@ -214,6 +218,7 @@ function processXmlFile(file) {
         row.valorUnitario = String(vUnCom);
         row.cProd = tagText(det, 'cProd');
         row.cEAN = tagText(det, 'cEAN');
+        row.vProd = vProd;
         novos.push(row);
       }
 
@@ -249,94 +254,127 @@ function processXmlFile(file) {
    ============================================================ */
 
 document.getElementById('gddInput').addEventListener('change', (e) => {
-  processGddFile(e.target.files[0]);
+  processGddFiles(Array.from(e.target.files));
   e.target.value = '';
 });
 
-setupDropzone('gddDropzone', processGddFile);
+setupDropzone('gddDropzone', processGddFiles, true);
 
-function processGddFile(file) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const wb = XLSX.read(new Uint8Array(reader.result), { type: 'array' });
+function lerArquivoBinario(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(new Uint8Array(reader.result));
+    reader.onerror = () => reject(new Error(`erro ao ler "${file.name}".`));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// ICMS % do produto a partir dos tributos da GDD: soma o ICMS em R$ de todos
+// os tributos (ex.: 1342 antecipado + 3863 fundo de promoção social) e divide
+// pelo valor do produto SEM IPI. Assim a base com IPI que a GDD usa já vem
+// embutida no valor. Sem valor em R$, cai no Multiplicador da linha.
+function icmsPctDaGdd(row) {
+  const base =
+    row.vProd > 0
+      ? row.vProd
+      : parseNumberBR(row.valorUnitario) * parseNumberBR(row.quantidade);
+  let pct = 0;
+  Object.values(row.gddTributos).forEach((t) => {
+    pct += t.valor > 0 && base > 0 ? (t.valor / base) * 100 : t.mult;
+  });
+  return Math.round(pct * 100) / 100;
+}
+
+async function processGddFiles(files) {
+  if (!files || !files.length) return;
+  const nomes = files.map((f) => `"${f.name}"`).join(', ');
+
+  try {
+    const planilhas = [];
+    for (const file of files) {
+      const wb = XLSX.read(await lerArquivoBinario(file), { type: 'array' });
       const parsed = extrairGDD(wb);
-
       if (!parsed) {
         throw new Error(
-          "não foi possível localizar a coluna 'Multiplicador' na planilha GDD."
+          `não foi possível localizar a coluna 'Multiplicador' em "${file.name}".`
         );
       }
+      planilhas.push(parsed);
+    }
 
-      // ---- frete ----
-      let freteMsg = '';
-      if (parsed.frete) {
-        document.getElementById('freteValorInput').value =
-          parsed.frete.valor.toFixed(2);
-        document.getElementById('freteIcmsInput').value =
-          parsed.frete.icms.toFixed(2);
-        freteMsg =
-          ` Frete: ${formatBRL(parsed.frete.valor)} · ICMS frete: ` +
-          `${formatBRL(parsed.frete.icms)}.`;
-      }
+    // ---- frete (soma das planilhas importadas juntas) ----
+    let freteMsg = '';
+    const comFrete = planilhas.filter((p) => p.frete);
+    if (comFrete.length) {
+      const valor = comFrete.reduce((s, p) => s + p.frete.valor, 0);
+      const icms = comFrete.reduce((s, p) => s + p.frete.icms, 0);
+      document.getElementById('freteValorInput').value = valor.toFixed(2);
+      document.getElementById('freteIcmsInput').value = icms.toFixed(2);
+      freteMsg = ` Frete: ${formatBRL(valor)} · ICMS frete: ${formatBRL(icms)}.`;
+    }
 
-      // ---- ICMS % dos produtos ----
-      const naoEncontrados = [];
-      let casados = 0;
+    // ---- ICMS % dos produtos ----
+    if (!products.length) {
+      setStatus(
+        'gddStatus',
+        `Frete importado de ${nomes}.${freteMsg} ` +
+          'Carregue o XML da NF-e para casar o ICMS dos produtos.',
+        'warn'
+      );
+      recomputeAll();
+      return;
+    }
 
-      if (!products.length) {
-        setStatus(
-          'gddStatus',
-          `Frete importado de "${file.name}".${freteMsg} ` +
-            'Carregue o XML da NF-e para casar o ICMS dos produtos.',
-          'warn'
-        );
-        recomputeAll();
-        return;
-      }
+    const naoEncontrados = [];
+    let casados = 0;
 
-      products.forEach((row) => {
-        let valor = parsed.byCprod.get(String(row.cProd || '').trim());
-        if (valor === undefined) valor = parsed.byGtin.get(limparGtin(row.cEAN));
-        if (valor === undefined)
-          valor = parsed.byDesc.get(normalizarDescricao(row.descricao));
+    products.forEach((row) => {
+      let casou = false;
+      planilhas.forEach((p) => {
+        let tributos = p.byCprod.get(String(row.cProd || '').trim());
+        if (tributos === undefined) tributos = p.byGtin.get(limparGtin(row.cEAN));
+        if (tributos === undefined)
+          tributos = p.byDesc.get(normalizarDescricao(row.descricao));
+        if (tributos === undefined) return;
 
-        if (valor === undefined) {
-          naoEncontrados.push(row.descricao);
-        } else {
-          row.icmsPct = String(valor);
-          lastMatchedIds.push(row.id);
-          casados++;
-        }
+        // Mesmo tributo importado de novo substitui o anterior (não duplica).
+        tributos.forEach((t) => {
+          row.gddTributos[t.tributo] = { valor: t.valor, mult: t.mult };
+        });
+        casou = true;
       });
 
-      renderTable();
-      flashMatchedRows();
-
-      if (naoEncontrados.length) {
-        showGddWarning(naoEncontrados);
-        setStatus(
-          'gddStatus',
-          `${casados} produto(s) casado(s), ${naoEncontrados.length} sem ` +
-            `correspondência em "${file.name}".${freteMsg}`,
-          'warn'
-        );
-      } else {
-        hideGddWarning();
-        setStatus(
-          'gddStatus',
-          `${casados} produto(s) casado(s) de "${file.name}". ` +
-            `Todos encontrados.${freteMsg}`,
-          'ok'
-        );
+      if (casou) {
+        row.icmsPct = String(icmsPctDaGdd(row));
+        lastMatchedIds.push(row.id);
+        casados++;
+      } else if (!Object.keys(row.gddTributos).length) {
+        naoEncontrados.push(row.descricao);
       }
-    } catch (err) {
-      setStatus('gddStatus', 'Erro ao ler planilha: ' + err.message, 'err');
+    });
+
+    renderTable();
+    flashMatchedRows();
+
+    if (naoEncontrados.length) {
+      showGddWarning(naoEncontrados);
+      setStatus(
+        'gddStatus',
+        `${casados} produto(s) casado(s), ${naoEncontrados.length} sem ` +
+          `correspondência em ${nomes}.${freteMsg}`,
+        'warn'
+      );
+    } else {
+      hideGddWarning();
+      setStatus(
+        'gddStatus',
+        `${casados} produto(s) casado(s) de ${nomes}. Todos encontrados.${freteMsg}`,
+        'ok'
+      );
     }
-  };
-  reader.onerror = () => setStatus('gddStatus', 'Erro ao ler o arquivo.', 'err');
-  reader.readAsArrayBuffer(file);
+  } catch (err) {
+    setStatus('gddStatus', 'Erro ao ler planilha: ' + err.message, 'err');
+  }
 }
 
 // Replica a lógica de app.py: acha a linha de cabeçalho pela presença de
@@ -422,13 +460,21 @@ function extrairGDD(workbook) {
     }
 
     // ---- dicionários de match ----
+    // Chave normalizada -> lista de tributos do produto { tributo, valor, mult }.
+    // Um produto pode aparecer em várias linhas (um tributo por linha).
     const byCprod = new Map();
     const byGtin = new Map();
     const byDesc = new Map();
+    const adicionar = (map, chave, t) => {
+      if (!chave) return;
+      if (!map.has(chave)) map.set(chave, []);
+      map.get(chave).push(t);
+    };
 
     data.forEach((linha) => {
       if (linha.mult == null || linha.mult === '') return;
       let mult = multiplicadorParaFloat(linha.mult);
+      let valor = parseNumberBR(linha.icms);
 
       if (
         mult === 0 &&
@@ -436,16 +482,17 @@ function extrairGDD(workbook) {
         ehTributoCestaBasica(linha.tributo)
       ) {
         mult = multCestaBasica;
+        if (valor === 0) valor = (parseNumberBR(linha.bcalc) * mult) / 100;
       }
 
-      const cp = String(linha.cprod == null ? '' : linha.cprod).trim();
-      if (cp) byCprod.set(cp, mult);
-
-      const gt = limparGtin(linha.gtin);
-      if (gt) byGtin.set(gt, mult);
-
-      const de = normalizarDescricao(linha.desc);
-      if (de) byDesc.set(de, mult);
+      const t = {
+        tributo: String(linha.tributo == null ? '' : linha.tributo).trim(),
+        valor,
+        mult
+      };
+      adicionar(byCprod, String(linha.cprod == null ? '' : linha.cprod).trim(), t);
+      adicionar(byGtin, limparGtin(linha.gtin), t);
+      adicionar(byDesc, normalizarDescricao(linha.desc), t);
     });
 
     return {
@@ -490,7 +537,7 @@ function escapeHtml(s) {
    DRAG & DROP
    ============================================================ */
 
-function setupDropzone(boxId, onFile) {
+function setupDropzone(boxId, onFile, multiplos) {
   const box = document.getElementById(boxId);
   if (!box) return;
   let depth = 0;
@@ -512,8 +559,10 @@ function setupDropzone(boxId, onFile) {
     e.preventDefault();
     depth = 0;
     box.classList.remove('dragover');
-    const file = e.dataTransfer.files && e.dataTransfer.files[0];
-    if (file) onFile(file);
+    const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+    if (!files.length) return;
+    if (multiplos) onFile(files);
+    else onFile(files[0]);
   });
 }
 
@@ -1043,7 +1092,7 @@ function exportarExcel() {
       arredondar(l.quantidade, 4),
       arredondar(l.valorUnitario, 4),
       arredondar(l.qtdCaixa, 4),
-      arredondar(l.icmsPct, 4),
+      arredondar(l.icmsPct, 2),
       arredondar(l.custo, 4),
       arredondar(l.pctFrete, 4),
       arredondar(l.pctAjuste, 4),
