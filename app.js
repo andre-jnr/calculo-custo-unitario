@@ -744,8 +744,11 @@ function recomputeAll() {
     const pctAdd = icms + fretePct + pctAjusteSigned;
     const custoFinal = custo * (1 + pctAdd / 100);
 
-    somaCustoFinal += custoFinal * qtd;
-    somaIcms += custo * (icms / 100) * qtd;
+    // Totais da nota usam o valor cheio da linha (sem dividir pelo
+    // multiplicador), para não variarem com a coluna Multiplicador.
+    const valorLinha = vu * qtd;
+    somaCustoFinal += valorLinha * (1 + pctAdd / 100);
+    somaIcms += valorLinha * (icms / 100);
 
     setText('custo-' + row.id, formatBRL(custo));
     setText('pctfrete-' + row.id, formatPct(fretePct));
@@ -928,7 +931,7 @@ function gerarPDF() {
       'Descrição',
       'Qtd',
       'Vlr unit. (R$)',
-      'Qtd caixa',
+      'Multiplicador',
       'Custo (R$)',
       'ICMS %',
       '% Frete',
@@ -1024,7 +1027,7 @@ function exportarExcel() {
     'Descrição',
     'Quantidade',
     'Valor Unitário',
-    'Qtd Caixa',
+    'Multiplicador',
     'ICMS %',
     'Custo',
     '% Frete',

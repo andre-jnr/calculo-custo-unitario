@@ -113,10 +113,10 @@ Não há `src/`, `tests/`, `package.json`, nem CI.
    - `% Custos Adicionais = icmsPct + % Frete + % Suframa/Outras` (este último
      negativo quando é Suframa)
    - `custoFinal = custo * (1 + % Custos Adicionais / 100)`
-   - Card "Custo final total (estimado)" = Σ `custoFinal * quantidade`
+   - Card "Custo final total (estimado)" = Σ `valorUnitario * quantidade * (1 + % Custos Adicionais / 100)` — **não** divide pelo Multiplicador (é o custo total da nota; não pode variar com essa coluna). Idem "ICMS dos produtos" do PDF.
 7. **PDF** (`gerarPDF`, botão `#pdfBtn`): jsPDF paisagem A4 — título, timestamp,
    tabela-resumo, tabela de frete, tabela de produtos (Descrição, Qtd, Vlr unit.,
-   Qtd caixa, Custo, ICMS %, % Frete, % Suframa/Outras, % Custos adic., Custo
+   Multiplicador, Custo, ICMS %, % Frete, % Suframa/Outras, % Custos adic., Custo
    final), rodapé com paginação. Salva `resultado_custo_unitario_AAAA-MM-DD.pdf`.
 8. **Excel** (`exportarExcel`, botão `#excelBtn`): exporta só a tabela de
    produtos (`ultimoCalculo.linhas`) via `XLSX.writeFile`, uma aba `Produtos`,
@@ -138,7 +138,7 @@ Não há `src/`, `tests/`, `package.json`, nem CI.
 - **ICMS de Cesta Básica não é 0%**: a alíquota real vem da linha-resumo
   `... CESTA BÁSICA - FUNDO DE PROMOÇÃO SOCIAL` e é propagada para as linhas de
   produto zeradas do grupo antes do match.
-- **Qtd Caixa** divide o valor unitário antes de aplicar os percentuais.
+- **Multiplicador** (coluna da tabela, campo interno `qtdCaixa`; antes rotulada "Qtd caixa") divide o valor unitário antes de aplicar os percentuais. Só afeta o custo por linha, nunca os totais da nota.
 - Sem XML carregado, Suframa/Outras não é calculado e o frete usa a soma ao vivo
   da tabela como base.
 

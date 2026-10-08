@@ -103,7 +103,7 @@ as linhas zeradas do grupo antes do match.
 ### 5. Custo final por linha
 
 ```
-Custo             = Valor Unitário ÷ Qtd Caixa
+Custo             = Valor Unitário ÷ Multiplicador
 % Custos Adicionais = ICMS % + % Frete + % Suframa/Outras
 Custo Final        = Custo × (1 + % Custos Adicionais ÷ 100)
 ```
