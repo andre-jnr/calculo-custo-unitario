@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cálculo de Custo Unitário</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --tinta: #17181c;
+      --suave: #6b6a66;
+      --borda: #ebe3e2;
+      --fundo: #f9f6f5;
+      --coral: #e03a3f;
+      --coral-forte: #b4232c;
+      --coral-suave: #fdecec;
+      --verde: #1f7a4d;
+      --verde-suave: #e7f3ec;
+      --vermelho: #8c1d1d;
+      --vermelho-suave: #fbeaea;
+    }
+
+    @page { size: A4; margin: 0; }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      background: #d7d9df;
+      color: var(--tinta);
+      font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+      font-size: 9pt;
+      line-height: 1.42;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .folha {
+      position: relative;
+      width: 210mm;
+      height: 297mm;
+      margin: 10mm auto;
+      padding: 13mm 15mm 10mm;
+      background: #fff;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 2mm 8mm rgba(0, 0, 0, 0.15);
+    }
+
+    .folha::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 2.2mm;
+      background: var(--coral);
+    }
+
+    @media print {
+      html, body { background: #fff; }
+      .folha { margin: 0; box-shadow: none; }
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    .eyebrow {
+      font-size: 7pt;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--coral);
+    }
+
+    /* ─── cabeçalho ─── */
+
+    .topo {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 10mm;
+      padding-bottom: 5mm;
+      border-bottom: 0.3mm solid var(--borda);
+    }
+
+    .topo h1 {
+      margin-top: 2.5mm;
+      font-size: 28pt;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .topo h1 em {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-weight: 400;
+      font-style: italic;
+      letter-spacing: -0.01em;
+      color: var(--coral);
+    }
+
+    .topo .resumo {
+      margin-top: 3mm;
+      max-width: 128mm;
+      font-size: 10.5pt;
+      color: var(--suave);
+    }
+
+    .meta {
+      text-align: right;
+      font-size: 8pt;
+      color: var(--suave);
+      white-space: nowrap;
+    }
+
+    .meta strong { display: block; color: var(--tinta); font-weight: 600; }
+    .meta div + div { margin-top: 2mm; }
+
+    /* ─── números ─── */
+
+    .numeros {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr 1fr;
+      gap: 3mm;
+      margin-top: 5mm;
+    }
+
+    .numero {
+      padding: 3.2mm 5mm;
+      border: 0.3mm solid var(--borda);
+      border-radius: 3mm;
+      background: var(--fundo);
+    }
+
+    .numero--destaque {
+      background: var(--tinta);
+      border-color: var(--tinta);
+      color: #fff;
+    }
+
+    .numero__rotulo {
+      font-size: 7.5pt;
+      color: var(--suave);
+    }
+
+    .numero--destaque .numero__rotulo { color: #b9b8b2; }
+
+    .numero__valor {
+      margin-top: 1.5mm;
+      font-size: 21pt;
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .numero__valor--texto { font-size: 15pt; letter-spacing: -0.02em; white-space: nowrap; }
+
+    .numero__valor small {
+      font-size: 10pt;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    .numero__valor .de {
+      color: #8d8c86;
+      text-decoration: line-through;
+      text-decoration-thickness: 0.3mm;
+    }
+
+    .numero__valor .seta { color: #ff9a96; margin: 0 1.5mm; font-weight: 400; }
+    .numero__valor .para { color: #ffaba8; }
+
+    .numero__nota {
+      margin-top: 1mm;
+      font-size: 7.5pt;
+      color: var(--suave);
+    }
+
+    .numero--destaque .numero__nota { color: #b9b8b2; }
+    .numero--destaque .numero__nota strong { color: #fff; font-weight: 600; }
+
+    /* ─── seções ─── */
+
+    .secao { margin-top: 3.8mm; }
+
+    .secao > h2 {
+      display: flex;
+      align-items: center;
+      gap: 2.5mm;
+      margin-bottom: 2.5mm;
+      font-size: 11pt;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .secao > h2 .num {
+      display: inline-grid;
+      place-items: center;
+      width: 5.5mm;
+      height: 5.5mm;
+      border-radius: 1.5mm;
+      background: var(--coral-suave);
+      color: var(--coral-forte);
+      font-size: 7.5pt;
+      font-weight: 700;
+    }
+
+    .duas {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3mm;
+    }
+
+    .cartao {
+      padding: 3.1mm 4.5mm;
+      border: 0.3mm solid var(--borda);
+      border-radius: 3mm;
+    }
+
+    .cartao h3 {
+      margin-bottom: 1.5mm;
+      font-size: 9.6pt;
+      font-weight: 700;
+    }
+
+    .cartao p { color: #3d3d3a; }
+
+    .mono {
+      font-family: "Cascadia Code", Consolas, monospace;
+      font-size: 8pt;
+      padding: 0.2mm 1.2mm;
+      border-radius: 1mm;
+      background: var(--fundo);
+      border: 0.25mm solid var(--borda);
+      white-space: nowrap;
+    }
+
+    /* fluxo da solução */
+
+    .fluxo {
+      display: grid;
+      grid-template-columns: 1fr 6mm 1fr 6mm 1fr;
+      align-items: stretch;
+    }
+
+    .passo {
+      padding: 3.1mm 4.5mm;
+      border: 0.3mm solid var(--borda);
+      border-radius: 3mm;
+      background: #fff;
+    }
+
+    .passo__n {
+      font-size: 7pt;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--coral);
+    }
+
+    .passo h3 {
+      margin: 1mm 0 1.2mm;
+      font-size: 9.8pt;
+      font-weight: 700;
+    }
+
+    .passo p { font-size: 8.4pt; color: #3d3d3a; }
+
+    .liga {
+      display: grid;
+      place-items: center;
+      color: var(--coral);
+      font-size: 11pt;
+    }
+
+    .conta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3mm;
+      margin-top: 2.5mm;
+      padding: 2.5mm;
+      border-radius: 3mm;
+      background: var(--coral-suave);
+      color: var(--coral-forte);
+      font-size: 9pt;
+      font-weight: 600;
+    }
+
+    .conta .op { font-weight: 400; opacity: 0.7; }
+
+    /* recursos */
+
+    .recursos {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.8mm;
+    }
+
+    .recurso {
+      padding: 1.2mm 3mm;
+      border-radius: 10mm;
+      background: var(--fundo);
+      border: 0.25mm solid var(--borda);
+      font-size: 8.2pt;
+      color: #3d3d3a;
+    }
+
+    .recurso strong { color: var(--tinta); font-weight: 600; }
+
+    /* resumo */
+
+    .tabela {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 0.3mm solid var(--borda);
+      border-radius: 3mm;
+      overflow: hidden;
+      font-size: 8.6pt;
+    }
+
+    .tabela td {
+      padding: 1.6mm 4mm;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 0.3mm solid var(--borda);
+    }
+
+    .tabela tr:last-child td { border-bottom: 0; }
+
+    .tabela--qa td:first-child { width: 19%; white-space: nowrap; color: var(--suave); font-weight: 500; }
+    .tabela--qa td:last-child { font-weight: 500; }
+    .tabela--qa .destaque { color: var(--coral-forte); font-weight: 700; }
+
+    /* stack */
+
+    .stack {
+      margin-top: 2.5mm;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4mm;
+      padding: 3mm 4.5mm;
+      border-radius: 3mm;
+      border: 0.3mm solid var(--coral);
+      background: var(--coral-suave);
+    }
+
+    .stack__rotulo { font-size: 7pt; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--coral-forte); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 1.5mm; margin-top: 1.8mm; }
+
+    .chip {
+      padding: 0.6mm 2.4mm;
+      border-radius: 10mm;
+      background: #fff;
+      border: 0.25mm solid var(--borda);
+      font-size: 8pt;
+      font-weight: 600;
+    }
+
+    .stack__linha { display: flex; align-items: center; gap: 3mm; }
+    .stack__linha .chips { margin-top: 0; flex-wrap: nowrap; }
+    .stack__linha { flex-shrink: 0; }
+
+    .stack__onde { max-width: 78mm; font-size: 8.2pt; color: #3d3d3a; text-align: right; }
+
+    /* rodapé */
+
+    .rodape {
+      margin-top: auto;
+      padding-top: 3mm;
+      border-top: 0.3mm solid var(--borda);
+      display: flex;
+      justify-content: space-between;
+      font-size: 7.5pt;
+      color: var(--suave);
+    }
+  </style>
+</head>
+<body>
+  <article class="folha">
+
+    <header class="topo">
+      <div>
+        <p class="eyebrow">Faturamento · Controladoria · Projeto interno</p>
+        <h1>Cálculo de Custo <em>Unitário</em></h1>
+        <p class="resumo">Lê o XML da NF-e e a planilha GDD e calcula o custo unitário final de cada produto, com ICMS, frete rateado e Suframa / Outras despesas.</p>
+      </div>
+      <div class="meta">
+        <div><strong>Andre Junior</strong>Faturamento</div>
+        <div><strong>Novembro de 2026</strong>Frigorífico Amazonas</div>
+      </div>
+    </header>
+
+    <section class="numeros">
+      <div class="numero numero--destaque">
+        <p class="numero__rotulo">Tempo por nota</p>
+        <p class="numero__valor"><span class="de">15</span><span class="seta">→</span><span class="para">2</span> <small>min</small></p>
+        <p class="numero__nota">do XML ao <strong>custo final</strong> de cada produto</p>
+      </div>
+      <div class="numero">
+        <p class="numero__rotulo">Economia</p>
+        <p class="numero__valor">13 <small>min / nota</small></p>
+        <p class="numero__nota">tempo devolvido ao faturamento</p>
+      </div>
+      <div class="numero">
+        <p class="numero__rotulo">Contas na calculadora</p>
+        <p class="numero__valor">0</p>
+        <p class="numero__nota">ICMS, frete e Suframa automáticos</p>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2><span class="num">1</span>O problema</h2>
+      <div class="duas">
+        <div class="cartao">
+          <h3>Custo calculado item por item</h3>
+          <p>A cada nota, o custo de cada produto era montado na calculadora: ICMS, Suframa ou outras despesas e a parte do frete que cabe a ele.</p>
+        </div>
+        <div class="cartao">
+          <h3>Digitação manual gera erro</h3>
+          <p>Valores redigitados do XML e da GDD, percentuais refeitos produto a produto. Um erro de digitação ia direto para a formação de preço.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2><span class="num">2</span>A solução</h2>
+      <div class="fluxo">
+        <div class="passo">
+          <p class="passo__n">PASSO 1</p>
+          <h3>Importa XML e GDD</h3>
+          <p>Lê os produtos da NF-e e casa cada um com a GDD por código, GTIN ou descrição para trazer o ICMS pago.</p>
+        </div>
+        <div class="liga">→</div>
+        <div class="passo">
+          <p class="passo__n">PASSO 2</p>
+          <h3>Aplica os ajustes</h3>
+          <p>Suframa ou outras despesas pela diferença entre nota e produtos; frete + ICMS do frete rateado pelo valor.</p>
+        </div>
+        <div class="liga">→</div>
+        <div class="passo">
+          <p class="passo__n">PASSO 3</p>
+          <h3>Exporta o resultado</h3>
+          <p>Custo final por produto na tela, com relatório em PDF e tabela em Excel para a formação de preço.</p>
+        </div>
+      </div>
+      <div class="conta">
+        <span>Valor unitário ÷ Multiplicador</span><span class="op">×</span><span>(1 + ICMS + Frete ± Suframa/Outras)</span><span class="op">=</span><span>Custo final</span>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2><span class="num">3</span>Em resumo</h2>
+      <table class="tabela tabela--qa">
+        <tbody>
+          <tr><td>O que eu fiz?</td><td>Automatizei o cálculo de custo de entrada.</td></tr>
+          <tr><td>O que melhorou?</td><td>Fim da digitação manual e dos erros de cálculo.</td></tr>
+          <tr><td>O que isso gerou?</td><td><span class="destaque">2 min por nota em vez de 15 min</span>.</td></tr>
+          <tr><td>Qual foi o impacto?</td><td>Formação de preço mais rápida e confiável.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="secao">
+      <h2><span class="num">4</span>O que o sistema faz</h2>
+      <div class="recursos">
+        <span class="recurso"><strong>Várias GDDs</strong> de uma vez</span>
+        <span class="recurso"><strong>Match</strong> por código, GTIN ou descrição</span>
+        <span class="recurso"><strong>ICMS de cesta básica</strong> pela alíquota real</span>
+        <span class="recurso"><strong>ICMS em lote</strong> e edição manual</span>
+        <span class="recurso"><strong>Aviso</strong> de produtos não encontrados</span>
+      </div>
+      <div class="stack">
+        <div class="stack__linha">
+          <p class="stack__rotulo">Tecnologia</p>
+          <div class="chips"><span class="chip">JavaScript</span><span class="chip">SheetJS</span><span class="chip">jsPDF</span><span class="chip">GitHub Pages</span></div>
+        </div>
+        <p class="stack__onde">Roda no navegador, sem instalar nada e sem enviar arquivos a servidor.</p>
+      </div>
+    </section>
+
+    <footer class="rodape">
+      <span>Cálculo de Custo Unitário · Faturamento · Frigorífico Amazonas</span>
+      <span>Novembro de 2026</span>
+    </footer>
+
+  </article>
+</body>
+</html>
